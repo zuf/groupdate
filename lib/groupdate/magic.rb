@@ -78,9 +78,9 @@ module Groupdate
             ["(DATE_TRUNC('#{field}', (#{column}::timestamptz - INTERVAL '#{day_start} second') AT TIME ZONE ?) + INTERVAL '#{day_start} second') AT TIME ZONE ?", time_zone, time_zone]
           end
         when "SQLite"
-          raise Groupdate::Error, "Time zones not supported for adapter" unless self.time_zone.utc_offset.zero?
-          raise Groupdate::Error, "day_start not supported for adapter" unless day_start.zero?
-          raise Groupdate::Error, "week_start not supported for adapter" unless week_start == 6
+          raise Groupdate::Error, "Time zones not supported for SQLite" unless self.time_zone.utc_offset.zero?
+          raise Groupdate::Error, "day_start not supported for SQLite" unless day_start.zero?
+          raise Groupdate::Error, "week_start not supported for SQLite" unless week_start == 6
 
           if field == :week
             ["strftime('%%Y-%%m-%%d 00:00:00 UTC', #{column}, '-6 days', 'weekday 0')"]
@@ -106,11 +106,9 @@ module Groupdate
                 when :month
                   "%Y-%m-01 00:00:00 UTC"
                 when :quarter
-                  raise Groupdate::Error, "Quarter not supported for adapter"
-                when :year
+                  raise Groupdate::Error, "Quarter not supported for SQLite"
+                else # year
                   "%Y-01-01 00:00:00 UTC"
-                else
-                  raise Groupdate::Error, "Unrecognized grouping: #{field}."
                 end
 
             ["strftime('#{format.gsub(/%/, '%%')}', #{column})"]
