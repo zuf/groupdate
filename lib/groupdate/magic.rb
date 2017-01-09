@@ -178,14 +178,14 @@ module Groupdate
           lambda { |k| (k.is_a?(String) || !k.respond_to?(:to_time) ? utc.parse(k.to_s) : k.to_time).in_time_zone(time_zone) }
         end
 
-      count =
-        begin
-          Hash[relation.send(method, *args, &block).map { |k, v| [multiple_groups ? k[0...@group_index] + [cast_method.call(k[@group_index])] + k[(@group_index + 1)..-1] : cast_method.call(k), v] }]
-        rescue NoMethodError
-          raise "Be sure to install time zone support - https://github.com/ankane/groupdate#for-mysql"
-        end
+      result = relation.send(method, *args, &block)
+      missing_time_zone_support = multiple_groups ? (result.keys.first && result.keys.first[@group_index].nil?) : result.key?(nil)
+      if missing_time_zone_support
+        raise Groupdate::Error, "Be sure to install time zone support - https://github.com/ankane/groupdate#for-mysql"
+      end
+      result = Hash[result.map { |k, v| [multiple_groups ? k[0...@group_index] + [cast_method.call(k[@group_index])] + k[(@group_index + 1)..-1] : cast_method.call(k), v] }]
 
-      series(count, (options.key?(:default_value) ? options[:default_value] : 0), multiple_groups, reverse)
+      series(result, (options.key?(:default_value) ? options[:default_value] : 0), multiple_groups, reverse)
     end
 
     protected
