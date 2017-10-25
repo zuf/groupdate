@@ -164,10 +164,12 @@ module Groupdate
     end
 
     def perform(relation, method, *args, &block)
+      raw_relation = relation.is_a?(Groupdate::Series) ? relation.relation : relation
+
       # undo reverse since we do not want this to appear in the query
       reverse = relation.send(:reverse_order_value)
       relation = relation.except(:reverse_order) if reverse
-      order = relation.order_values.first
+      order = raw_relation.order_values.first
       if order.is_a?(String)
         parts = order.split(" ")
         reverse_order = (parts.size == 2 && (parts[0].to_sym == period || (activerecord42? && parts[0] == "#{relation.quoted_table_name}.#{relation.quoted_primary_key}")) && parts[1].to_s.downcase == "desc")
@@ -177,25 +179,29 @@ module Groupdate
         end
       end
 
-      multiple_groups = relation.group_values.size > 1
+      result = relation.send(method, *args, &block)
 
-      cast_method =
-        case period
-        when :day_of_week, :hour_of_day, :day_of_month, :month_of_year, :minute_of_hour
-          lambda { |k| k.to_i }
-        else
-          utc = ActiveSupport::TimeZone["UTC"]
-          lambda { |k| (k.is_a?(String) || !k.respond_to?(:to_time) ? utc.parse(k.to_s) : k.to_time).in_time_zone(time_zone) }
+      if result.is_a?(Hash)
+        multiple_groups = raw_relation.group_values.size > 1
+        missing_time_zone_support = multiple_groups ? (result.keys.first && result.keys.first[@group_index].nil?) : result.key?(nil)
+        if missing_time_zone_support
+          raise Groupdate::Error, "Be sure to install time zone support - https://github.com/ankane/groupdate#for-mysql"
         end
 
-      result = relation.send(method, *args, &block)
-      missing_time_zone_support = multiple_groups ? (result.keys.first && result.keys.first[@group_index].nil?) : result.key?(nil)
-      if missing_time_zone_support
-        raise Groupdate::Error, "Be sure to install time zone support - https://github.com/ankane/groupdate#for-mysql"
-      end
-      result = Hash[result.map { |k, v| [multiple_groups ? k[0...@group_index] + [cast_method.call(k[@group_index])] + k[(@group_index + 1)..-1] : cast_method.call(k), v] }]
+        cast_method =
+          case period
+          when :day_of_week, :hour_of_day, :day_of_month, :month_of_year, :minute_of_hour
+            lambda { |k| k.to_i }
+          else
+            utc = ActiveSupport::TimeZone["UTC"]
+            lambda { |k| (k.is_a?(String) || !k.respond_to?(:to_time) ? utc.parse(k.to_s) : k.to_time).in_time_zone(time_zone) }
+          end
+        result = Hash[result.map { |k, v| [multiple_groups ? k[0...@group_index] + [cast_method.call(k[@group_index])] + k[(@group_index + 1)..-1] : cast_method.call(k), v] }]
 
-      series(result, (options.key?(:default_value) ? options[:default_value] : 0), multiple_groups, reverse)
+        series(result, (options.key?(:default_value) ? options[:default_value] : 0), multiple_groups, reverse)
+      else
+        Groupdate::Series.new(self, result)
+      end
     end
 
     protected

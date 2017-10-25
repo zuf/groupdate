@@ -1,7 +1,6 @@
 require "active_record"
 require "groupdate/order_hack"
 require "groupdate/scopes"
-require "groupdate/calculations"
 require "groupdate/series"
 
 ActiveRecord::Base.send(:extend, Groupdate::Scopes)
