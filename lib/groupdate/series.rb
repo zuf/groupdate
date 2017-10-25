@@ -28,8 +28,19 @@ module Groupdate
       relation.group_values
     end
 
-    def reverse_order_value
-      nil
+    def order(value)
+      magic.process_order(value)
+      self
+    end
+
+    def reorder(value)
+      magic.process_order(value)
+      self
+    end
+
+    def reverse_order
+      magic.reverse_order
+      self
     end
   end
 end

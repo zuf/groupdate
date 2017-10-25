@@ -7,6 +7,7 @@ module Groupdate
     def initialize(period, options)
       @period = period
       @options = options
+      @reverse = false
 
       raise Groupdate::Error, "Unrecognized time zone" unless time_zone
 
@@ -160,23 +161,30 @@ module Groupdate
       # TODO do not change object state
       @group_index = group.group_values.size - 1
 
+      # undo reverse since we do not want this to appear in the query
+      @reverse = relation.send(:reverse_order_value)
+      relation = relation.except(:reverse_order) if @reverse
+      relation = relation.reorder(relation.order_values[1..-1]) if process_order(relation.order_values.first)
+
       Groupdate::Series.new(self, relation)
     end
 
-    def perform(relation, method, *args, &block)
-      # undo reverse since we do not want this to appear in the query
-      reverse = relation.send(:reverse_order_value)
-      relation = relation.except(:reverse_order) if reverse
-      order = relation.order_values.first
+    def process_order(order)
       if order.is_a?(String)
         parts = order.split(" ")
         reverse_order = (parts.size == 2 && (parts[0].to_sym == period || (activerecord42? && parts[0] == "#{relation.quoted_table_name}.#{relation.quoted_primary_key}")) && parts[1].to_s.downcase == "desc")
         if reverse_order
-          reverse = !reverse
-          relation = relation.reorder(relation.order_values[1..-1])
+          self.reverse_order
+          true
         end
       end
+    end
 
+    def reverse_order
+      @reverse = !@reverse
+    end
+
+    def perform(relation, method, *args, &block)
       result = relation.send(method, *args, &block)
 
       if result.is_a?(Hash)
@@ -196,9 +204,11 @@ module Groupdate
           end
         result = Hash[result.map { |k, v| [multiple_groups ? k[0...@group_index] + [cast_method.call(k[@group_index])] + k[(@group_index + 1)..-1] : cast_method.call(k), v] }]
 
-        series(result, (options.key?(:default_value) ? options[:default_value] : 0), multiple_groups, reverse)
-      else
+        series(result, (options.key?(:default_value) ? options[:default_value] : 0), multiple_groups, @reverse)
+      elsif result.is_a?(Groupdate::Series) || result.is_a?(ActiveRecord::Relation)
         Groupdate::Series.new(self, result)
+      else
+        result
       end
     end
 
