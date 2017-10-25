@@ -19,5 +19,17 @@ module Groupdate
     def respond_to?(method, include_all = false)
       relation.respond_to?(method) || super
     end
+
+    def order_values
+      relation.order_values
+    end
+
+    def group_values
+      relation.group_values
+    end
+
+    def reverse_order_value
+      nil
+    end
   end
 end

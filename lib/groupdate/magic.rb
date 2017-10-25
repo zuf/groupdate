@@ -164,12 +164,10 @@ module Groupdate
     end
 
     def perform(relation, method, *args, &block)
-      raw_relation = relation.is_a?(Groupdate::Series) ? relation.relation : relation
-
       # undo reverse since we do not want this to appear in the query
       reverse = relation.send(:reverse_order_value)
       relation = relation.except(:reverse_order) if reverse
-      order = raw_relation.order_values.first
+      order = relation.order_values.first
       if order.is_a?(String)
         parts = order.split(" ")
         reverse_order = (parts.size == 2 && (parts[0].to_sym == period || (activerecord42? && parts[0] == "#{relation.quoted_table_name}.#{relation.quoted_primary_key}")) && parts[1].to_s.downcase == "desc")
@@ -182,7 +180,7 @@ module Groupdate
       result = relation.send(method, *args, &block)
 
       if result.is_a?(Hash)
-        multiple_groups = raw_relation.group_values.size > 1
+        multiple_groups = relation.group_values.size > 1
         missing_time_zone_support = multiple_groups ? (result.keys.first && result.keys.first[@group_index].nil?) : result.key?(nil)
         if missing_time_zone_support
           raise Groupdate::Error, "Be sure to install time zone support - https://github.com/ankane/groupdate#for-mysql"
