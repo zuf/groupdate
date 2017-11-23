@@ -11,7 +11,7 @@ The simplest way to group by:
 
 :cake: Get the entire series - **the other best part**
 
-Supports PostgreSQL, MySQL, and Redshift, plus arrays and hashes
+Supports PostgreSQL, MySQL, Redshift and CockroachDB, plus arrays and hashes
 
 Limited support for [SQLite](#for-sqlite)
 

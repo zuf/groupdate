@@ -24,6 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake"
   spec.add_development_dependency "minitest"
   spec.add_development_dependency "activerecord"
+  spec.add_development_dependency "activerecord-cockroachdb-adapter"
 
   if RUBY_PLATFORM == "java"
     spec.add_development_dependency "activerecord-jdbcpostgresql-adapter"

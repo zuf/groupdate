@@ -21,4 +21,8 @@ namespace :test do
     t.libs << "test"
     t.pattern = "test/redshift_test.rb"
   end
+  Rake::TestTask.new(:cockroachdb) do |t|
+    t.libs << "test"
+    t.pattern = "test/cockroachdb_test.rb"
+  end
 end

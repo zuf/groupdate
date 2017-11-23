@@ -64,7 +64,7 @@ module Groupdate
 
             ["DATE_ADD(CONVERT_TZ(DATE_FORMAT(CONVERT_TZ(DATE_SUB(#{column}, INTERVAL #{day_start} second), '+00:00', ?), '#{format}'), ?, '+00:00'), INTERVAL #{day_start} second)", time_zone, time_zone]
           end
-        when "PostgreSQL", "PostGIS"
+        when "PostgreSQL", "PostGIS", "CockroachDB"
           case period
           when :day_of_week
             ["EXTRACT(DOW from #{column}::timestamptz AT TIME ZONE ? - INTERVAL '#{day_start} second')::integer", time_zone]
